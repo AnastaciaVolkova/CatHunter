@@ -34,3 +34,6 @@
 # Ros files
 devel/
 build/
+
+src/CMakeLists.txt
+
