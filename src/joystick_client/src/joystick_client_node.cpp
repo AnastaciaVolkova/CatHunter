@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include "ros/ros.h"
 #include <ros/console.h>
-
+#include "std_msgs/Int8.h"
 #include <iostream>
 #include <cstring>
 
@@ -39,10 +39,10 @@ public:
         }
     }
     
-    char Receive(){
+   std_msgs::Int8 Receive(){
         int n;
-        char buffer;
-        n = recvfrom(socket_id_, &buffer, kMaxLen, MSG_WAITALL, NULL, NULL);
+        std_msgs::Int8 buffer;
+        n = recvfrom(socket_id_, &buffer.data, kMaxLen, MSG_WAITALL, NULL, NULL);
         if (n != 1){
             ROS_ERROR("Received more than 1 byte");
             throw std::runtime_error("Received more than 1 byte");
@@ -54,12 +54,14 @@ public:
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "joystick_client");
     ros::NodeHandle n;
+    ros::Publisher pub = n.advertise<std_msgs::Int8>("teleop", 4);
     try{
         Client client;
         while(ros::ok()){
             try {
-                char buffer = client.Receive();
-                ROS_INFO("INFO: %d", buffer);
+                std_msgs::Int8 buffer = client.Receive();
+                pub.publish(buffer);
+                ROS_INFO("INFO: %d", buffer.data);
             } catch(...){
                 ROS_ERROR("Command reception fails");
                 return -1;
