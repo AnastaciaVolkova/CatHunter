@@ -1,5 +1,5 @@
 /*
-UDP client receives user commands.
+UDP server receives user commands.
 The node publishes user commands.
 */
 
@@ -18,7 +18,7 @@ using std::cout;
 using std::endl;
 
 
-//! UDP client class.
+//! UDP server class.
 class Client{
 private:
     int socket_id_;
@@ -58,14 +58,14 @@ public:
 };
 
 int main(int argc, char* argv[]){
-    ros::init(argc, argv, "joystick_client");
+    ros::init(argc, argv, "joystick_server");
     ros::NodeHandle n;
     ros::Publisher pub = n.advertise<std_msgs::Int8>("teleop", 4);
     try{
-        Client client;
+        Client server;
         while(ros::ok()){
             try {
-                std_msgs::Int8 buffer = client.Receive();
+                std_msgs::Int8 buffer = server.Receive();
                 pub.publish(buffer);
                 ROS_INFO("INFO: %d", buffer.data);
             } catch(...){
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]){
             }
         }
     } catch (...){
-        ROS_ERROR("Can not create UDP client");
+        ROS_ERROR("Can not create UDP server");
         return -1;
     }
     return 0;
