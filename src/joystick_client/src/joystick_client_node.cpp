@@ -1,3 +1,8 @@
+/*
+UDP client receives user commands.
+The node publishes user commands.
+*/
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -13,14 +18,14 @@ using std::cout;
 using std::endl;
 
 
-
+//! UDP client class.
 class Client{
 private:
     int socket_id_;
     sockaddr_in serv_addr_;
     const int kPort;
     const int kMaxLen;
-public: 
+public:
     Client():kPort(8080), kMaxLen(1){
         socket_id_ = socket(AF_INET, SOCK_DGRAM, 0);
         if (socket_id_ < 0){
@@ -31,15 +36,16 @@ public:
         memset(&serv_addr_, 0, sizeof(serv_addr_));
         serv_addr_.sin_family = AF_INET;
         serv_addr_.sin_addr.s_addr = INADDR_ANY;
-        serv_addr_.sin_port = htons(kPort);    
-       
-        if (bind(socket_id_, (const struct sockaddr*)&serv_addr_,sizeof(serv_addr_))<0){ 
+        serv_addr_.sin_port = htons(kPort);
+
+        if (bind(socket_id_, (const struct sockaddr*)&serv_addr_,sizeof(serv_addr_))<0){
             ROS_ERROR("Socket binding to address fails");
             throw std::runtime_error("Socket binding to address fails");
         }
     }
-    
-   std_msgs::Int8 Receive(){
+
+    //! Receive and return commands from user.
+    std_msgs::Int8 Receive(){
         int n;
         std_msgs::Int8 buffer;
         n = recvfrom(socket_id_, &buffer.data, kMaxLen, MSG_WAITALL, NULL, NULL);
