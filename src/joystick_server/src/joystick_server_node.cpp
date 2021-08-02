@@ -60,14 +60,14 @@ public:
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "joystick_server");
     ros::NodeHandle n;
-    ros::Publisher pub = n.advertise<std_msgs::Int8>("teleop", 4);
+    ROS_INFO("Node %s starts", ros::this_node::getName().c_str());
+    ros::Publisher pub = n.advertise<std_msgs::Int8>("/joystick_server/teleop", 4);
     try{
         Client server;
         while(ros::ok()){
             try {
                 std_msgs::Int8 buffer = server.Receive();
                 pub.publish(buffer);
-                ROS_INFO("INFO: %d", buffer.data);
             } catch(...){
                 ROS_ERROR("Command reception fails");
                 return -1;
