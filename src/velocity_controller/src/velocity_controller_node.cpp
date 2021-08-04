@@ -16,7 +16,7 @@ using ros::Subscriber;
 // kRight - decrease angular speed
 // kQ - zero linear speed
 // kA - zero angular speed
-enum class Command : int8_t{kNone = -1, kUp, kDown, kLeft, kRight, kQ, kA};
+enum class Command : int8_t{kEscape = -1, kUp, kDown, kLeft, kRight, kQ, kA};
 
 class VelocityController{
 private:
@@ -29,7 +29,7 @@ public:
         twist_.angular.z = angular;
         d_twist_.linear.x = d_linear;
         d_twist_.angular.z = d_angular;
-        pub_ = std::move(pub);
+        pub_ = pub;
     };
 
     void JoystickCallback(std_msgs::Int8 msg){
@@ -65,7 +65,11 @@ public:
         }
         pub_.publish(twist_);
     };
+};
 
+void HandleShutdown(Int8 msg){
+    ROS_INFO("Node %s is shutting down", ros::this_node::getName().c_str());
+    ros::shutdown();
 };
 
 int main(int argc, char* argv[]){
@@ -75,6 +79,7 @@ int main(int argc, char* argv[]){
     Publisher pub = n.advertise<Twist>("/velocity_controller/cmd_vel", 4);
     VelocityController vel_ctrl(0.0, 0.0, 1.0/16.0, 1.0/8.0, pub);
     Subscriber sub = n.subscribe("/joystick_server/teleop", 4, &VelocityController::JoystickCallback, &vel_ctrl);
+    Subscriber sub_shutdown = n.subscribe("/joystick_server/shutdown", 4, &HandleShutdown);
     ros::spin();
     return 0;
 }

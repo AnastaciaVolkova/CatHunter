@@ -2,6 +2,7 @@
 #include <pigpio.h>
 #include "ros/ros.h"
 #include <signal.h>
+#include "std_msgs/Int8.h"
 #include "geometry_msgs/Twist.h"
 #include <cmath>
 
@@ -34,16 +35,23 @@ public:
     }
 };
 
+void HandleShutdown(std_msgs::Int8 msg){
+    ROS_INFO("Node %s is shutting down", ros::this_node::getName().c_str());
+    gpioHardwarePWM(18, 0, 0);
+    ros::shutdown();
+};
+
 int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "motion_driver");
+    ROS_INFO("Node %s starts", ros::this_node::getName().c_str());
     ros::NodeHandle n;
 
     //signal(SIGINT, SigintHandler);
     try {
         MotionDriver driver;
         Subscriber sub = n.subscribe("/velocity_controller/cmd_vel", 4, &MotionDriver::SetVelocity, &driver);
-        ROS_INFO("starts");
+        Subscriber sub_shutdown = n.subscribe("/joystick_server/shutdown", 1, &HandleShutdown);
         ros::spin();
         return 0;
     } catch(...){

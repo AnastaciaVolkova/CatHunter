@@ -19,14 +19,14 @@ using std::endl;
 
 
 //! UDP server class.
-class Client{
+class Server{
 private:
     int socket_id_;
     sockaddr_in serv_addr_;
     const int kPort;
     const int kMaxLen;
 public:
-    Client():kPort(8080), kMaxLen(1){
+    Server():kPort(8080), kMaxLen(1){
         socket_id_ = socket(AF_INET, SOCK_DGRAM, 0);
         if (socket_id_ < 0){
             ROS_ERROR("Socket creation fails");
@@ -57,16 +57,23 @@ public:
     }
 };
 
+
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "joystick_server");
     ros::NodeHandle n;
     ROS_INFO("Node %s starts", ros::this_node::getName().c_str());
     ros::Publisher pub = n.advertise<std_msgs::Int8>("/joystick_server/teleop", 4);
+    ros::Publisher pub_shutdown = n.advertise<std_msgs::Int8>("/joystick_server/shutdown", 4);
     try{
-        Client server;
+        Server server;
         while(ros::ok()){
             try {
                 std_msgs::Int8 buffer = server.Receive();
+                if (buffer.data == -1){
+                    pub_shutdown.publish(buffer);
+                    ROS_INFO("Node %s is shutting down", ros::this_node::getName().c_str());
+                    ros::shutdown();
+                }
                 pub.publish(buffer);
             } catch(...){
                 ROS_ERROR("Command reception fails");
@@ -77,5 +84,6 @@ int main(int argc, char* argv[]){
         ROS_ERROR("Can not create UDP server");
         return -1;
     }
+    ros::spin();
     return 0;
 }
