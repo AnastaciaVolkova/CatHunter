@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     //signal(SIGINT, SigintHandler);
     try {
         MotionDriver driver;
-        Subscriber sub = n.subscribe("/velocity_controller/cmd_vel", 4, &MotionDriver::SetVelocity, &driver);
+        Subscriber sub = n.subscribe("/teleop/cmd_vel", 4, &MotionDriver::SetVelocity, &driver);
         Subscriber sub_shutdown = n.subscribe("/joystick_server/shutdown", 1, &HandleShutdown);
         ros::spin();
         return 0;

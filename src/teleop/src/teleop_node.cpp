@@ -73,10 +73,10 @@ void HandleShutdown(Int8 msg){
 };
 
 int main(int argc, char* argv[]){
-    ros::init(argc, argv, "velocity_controller");
+    ros::init(argc, argv, "teleop");
     ros::NodeHandle n;
     ROS_INFO("Node %s starts", ros::this_node::getName().c_str());
-    Publisher pub = n.advertise<Twist>("/velocity_controller/cmd_vel", 4);
+    Publisher pub = n.advertise<Twist>("/teleop/cmd_vel", 4);
     VelocityController vel_ctrl(0.0, 0.0, 1.0/16.0, 1.0/8.0, pub);
     Subscriber sub = n.subscribe("/joystick_server/teleop", 4, &VelocityController::JoystickCallback, &vel_ctrl);
     Subscriber sub_shutdown = n.subscribe("/joystick_server/shutdown", 4, &HandleShutdown);
