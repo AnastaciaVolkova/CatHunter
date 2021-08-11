@@ -7,9 +7,11 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <vector>
 
 using geometry_msgs::Twist;
 using ros::Subscriber;
+using std::vector;
 
 void SigintHandler(int sig){
     ros::shutdown();
@@ -31,7 +33,7 @@ private:
 
     void ResetRegisters(){
         // Reset control registers.
-        for (int reg = 0x6; reg < 0x45; reg++){
+        for (int reg = 0x6; reg <= 0x45; reg++){
             i2cWriteByteData(i2c_id_, reg, 0);
         }
     }
@@ -51,26 +53,33 @@ public:
     };
 
     void SetVelocity(const Twist& velocity){
+        vector<int> channels={8, 10, 12, 14};// Forward left wheel, Forward right wheel, Back left wheel, Back right wheel
+
+        if (velocity.linear.x < 0){
+            for (auto& c: channels)
+                c++;
+        }
         char buffer[4];
         buffer[0] = 0;   // ON_L
         buffer[1] = 0;   // ON_H
-        GetLedRegValues(static_cast<int>(round(kMaxDuty*velocity.linear.x)), buffer[2], buffer[3]);
-        int channel = 12;
-        int reg = 6 + (12 << 2);
-        for (int i = 0; i < 4; i++){
-            int stat = i2cWriteByteData(i2c_id_, reg, buffer[i]);
-            if (stat < 0)
-                switch(stat){
-                    case PI_BAD_HANDLE:
-                            ROS_ERROR("pi bad handle"); break;
-                    case PI_BAD_PARAM:
-                            ROS_ERROR("pi bad param"); break;
-                    case PI_I2C_WRITE_FAILED:
-                            ROS_ERROR("pi i2c write fails"); break;
-                    default:
-                            ROS_ERROR("Fail to write to i2c");
+        GetLedRegValues(static_cast<int>(round(kMaxDuty*abs(velocity.linear.x))), buffer[2], buffer[3]);
+        for (auto channel: channels){
+            int reg = 6 + (channel<< 2);
+            for (int i = 0; i < 4; i++){
+                int stat = i2cWriteByteData(i2c_id_, reg, buffer[i]);
+                if (stat < 0)
+                    switch(stat){
+                        case PI_BAD_HANDLE:
+                                ROS_ERROR("pi bad handle"); break;
+                        case PI_BAD_PARAM:
+                                ROS_ERROR("pi bad param"); break;
+                        case PI_I2C_WRITE_FAILED:
+                                ROS_ERROR("pi i2c write fails"); break;
+                        default:
+                                ROS_ERROR("Fail to write to i2c");
+                }
+                reg++;
             }
-            reg++;
         }
     };
 
