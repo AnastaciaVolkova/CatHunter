@@ -24,11 +24,11 @@ void SigintHandler(int sig){
 class MotionDriver{
 private:
     static constexpr float kMaxDuty = (1<<12)-1;
+    static constexpr int kWheelsNum = 4;
     int i2c_id_;
     void GetLedRegValues(int duty, char& reg_l, char& reg_h){
         reg_l = static_cast<char>(duty & 0xff);
         reg_h = static_cast<char>((duty >> 8) & 0xff);
-        ROS_INFO("%d %x %x", duty, reg_h, reg_l);
     }
 
     void ResetRegisters(){
@@ -37,6 +37,32 @@ private:
             i2cWriteByteData(i2c_id_, reg, 0);
         }
     }
+
+    // Set Led control register sequence (on_low, on_high, off_low, off_high)
+    void SetLedRegister(int channel, char on_low, char on_high, char off_low, char off_high){
+        char buffer[]{on_low, on_high, off_low, off_high};
+        int reg = 6 + (channel<< 2);
+        for (int i = 0; i < 4; i++){
+            int stat = i2cWriteByteData(i2c_id_, reg, buffer[i]);
+            if (stat < 0)
+                switch(stat){
+                    case PI_BAD_HANDLE:
+                            ROS_ERROR("pi bad handle"); break;
+                    case PI_BAD_PARAM:
+                            ROS_ERROR("pi bad param"); break;
+                    case PI_I2C_WRITE_FAILED:
+                            ROS_ERROR("pi i2c write fails"); break;
+                    default:
+                            ROS_ERROR("Fail to write to i2c");
+            }
+            reg++;
+        }
+    }
+
+    void SetLedRegister(int channel, const char (&buffer)[4]){
+        SetLedRegister(channel, buffer[0], buffer[1], buffer[2], buffer[3]);
+    }
+
 public:
     MotionDriver(){
         if (gpioInitialise() < 0)
@@ -54,32 +80,41 @@ public:
 
     void SetVelocity(const Twist& velocity){
         vector<int> channels={8, 10, 12, 14};// Forward left wheel, Forward right wheel, Back left wheel, Back right wheel
+        vector<float> ch_vel(kWheelsNum, abs(velocity.linear.x));
 
-        if (velocity.linear.x < 0){
-            for (auto& c: channels)
-                c++;
+        if (velocity.linear.x == 0){
+            char buffer[4] = {0};
+            for (auto c: channels){
+                SetLedRegister(c, buffer);
+                SetLedRegister(c+1, buffer);
+            }
+            return;
         }
+
+        // Decrease side speed in case of angular speed.
+        if (velocity.angular.z < 0){ // Rotate left, decrease right side speed.
+            ch_vel[1] -= velocity.angular.z;
+            ch_vel[3] -= velocity.angular.z;
+        }else if (velocity.angular.z > 0){ // Rotate right, decrease left side speed.
+            ch_vel[0] -= velocity.angular.z;
+            ch_vel[2] -= velocity.angular.z;
+        }
+
+        for (int i = 0; i < channels.size(); i++){
+            if (ch_vel[i] < 0){
+                ch_vel[i] = -ch_vel[i];
+                SetLedRegister(channels[i], 0, 0, 0, 0);
+                channels[i]++;
+            }
+        }
+
         char buffer[4];
         buffer[0] = 0;   // ON_L
         buffer[1] = 0;   // ON_H
-        GetLedRegValues(static_cast<int>(round(kMaxDuty*abs(velocity.linear.x))), buffer[2], buffer[3]);
-        for (auto channel: channels){
-            int reg = 6 + (channel<< 2);
-            for (int i = 0; i < 4; i++){
-                int stat = i2cWriteByteData(i2c_id_, reg, buffer[i]);
-                if (stat < 0)
-                    switch(stat){
-                        case PI_BAD_HANDLE:
-                                ROS_ERROR("pi bad handle"); break;
-                        case PI_BAD_PARAM:
-                                ROS_ERROR("pi bad param"); break;
-                        case PI_I2C_WRITE_FAILED:
-                                ROS_ERROR("pi i2c write fails"); break;
-                        default:
-                                ROS_ERROR("Fail to write to i2c");
-                }
-                reg++;
-            }
+        for (int i = 0; i < kWheelsNum; i++){
+            GetLedRegValues(static_cast<int>(round(kMaxDuty*ch_vel[i])), buffer[2], buffer[3]);
+            SetLedRegister(channels[i], buffer[0], buffer[1], buffer[2], buffer[3]);
+            ROS_INFO("%f %d %s %x %x", ch_vel[i], channels[i], i == 0? "**fl**": i==1? "fr": i==2? "bl": "br", buffer[2], buffer[3]);
         }
     };
 
