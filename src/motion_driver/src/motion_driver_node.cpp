@@ -80,7 +80,7 @@ public:
 
     void SetVelocity(const Twist& velocity){
         vector<int> channels={8, 10, 12, 14};// Forward left wheel, Forward right wheel, Back left wheel, Back right wheel
-        vector<float> ch_vel(kWheelsNum, abs(velocity.linear.x));
+        vector<float> ch_vel(kWheelsNum, velocity.linear.x);
 
         char buffer[4] = {0};
         for (auto& c: channels){
@@ -88,13 +88,14 @@ public:
             SetLedRegister(c+1, buffer);
         }
 
+        auto sign = [](float v){if (v<0) return -1; else return 1;};
         // Decrease side speed in case of angular speed.
-        if (velocity.angular.z < 0){ // Rotate left, decrease right side speed.
-            ch_vel[1] -= velocity.angular.z;
-            ch_vel[3] -= velocity.angular.z;
-        }else if (velocity.angular.z > 0){ // Rotate right, decrease left side speed.
-            ch_vel[0] -= velocity.angular.z;
-            ch_vel[2] -= velocity.angular.z;
+        if (velocity.angular.z < 0){ // Rotate right, decrease right side speed.
+            ch_vel[1] -= sign(ch_vel[1]) * velocity.angular.z;
+            ch_vel[3] -= sign(ch_vel[3]) * velocity.angular.z;
+        }else if (velocity.angular.z > 0){ // Rotate left, decrease left side speed.
+            ch_vel[0] -= sign(ch_vel[0]) * velocity.angular.z;
+            ch_vel[2] -= sign(ch_vel[2]) * velocity.angular.z;
         }
 
         for (int i = 0; i < channels.size(); i++){
@@ -108,6 +109,7 @@ public:
         buffer[1] = 0;   // ON_H
         for (int i = 0; i < kWheelsNum; i++){
             GetLedRegValues(static_cast<int>(round(kMaxDuty*ch_vel[i])), buffer[2], buffer[3]);
+            ROS_INFO("%f %d %s %x %x", ch_vel[i], channels[i], i == 0? "**fl**": i==1? "fr": i==2? "bl": "br", buffer[2], buffer[3]);
             SetLedRegister(channels[i], buffer[0], buffer[1], buffer[2], buffer[3]);
         }
     };
