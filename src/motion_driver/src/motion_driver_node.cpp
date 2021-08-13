@@ -82,13 +82,10 @@ public:
         vector<int> channels={8, 10, 12, 14};// Forward left wheel, Forward right wheel, Back left wheel, Back right wheel
         vector<float> ch_vel(kWheelsNum, abs(velocity.linear.x));
 
-        if (velocity.linear.x == 0){
-            char buffer[4] = {0};
-            for (auto c: channels){
-                SetLedRegister(c, buffer);
-                SetLedRegister(c+1, buffer);
-            }
-            return;
+        char buffer[4] = {0};
+        for (auto& c: channels){
+            SetLedRegister(c, buffer);
+            SetLedRegister(c+1, buffer);
         }
 
         // Decrease side speed in case of angular speed.
@@ -103,18 +100,15 @@ public:
         for (int i = 0; i < channels.size(); i++){
             if (ch_vel[i] < 0){
                 ch_vel[i] = -ch_vel[i];
-                SetLedRegister(channels[i], 0, 0, 0, 0);
                 channels[i]++;
             }
         }
 
-        char buffer[4];
         buffer[0] = 0;   // ON_L
         buffer[1] = 0;   // ON_H
         for (int i = 0; i < kWheelsNum; i++){
             GetLedRegValues(static_cast<int>(round(kMaxDuty*ch_vel[i])), buffer[2], buffer[3]);
             SetLedRegister(channels[i], buffer[0], buffer[1], buffer[2], buffer[3]);
-            ROS_INFO("%f %d %s %x %x", ch_vel[i], channels[i], i == 0? "**fl**": i==1? "fr": i==2? "bl": "br", buffer[2], buffer[3]);
         }
     };
 
