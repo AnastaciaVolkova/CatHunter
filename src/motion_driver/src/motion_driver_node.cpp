@@ -32,9 +32,6 @@ private:
     }
 
     void ResetRegisters(){
-        // Reset MODE1 register
-        i2cWriteByteData(i2c_id_, 0, 0);
-
         // Reset control registers.
         for (int reg = 0x6; reg <= 0x45; reg++){
             i2cWriteByteData(i2c_id_, reg, 0);
@@ -79,6 +76,15 @@ public:
             throw std::runtime_error("Unable to open i2c");
         }
         ResetRegisters();
+
+        // Set sleep bit in MODE1 register
+        i2cWriteByteData(i2c_id_, 0, 0x10);
+
+        // Set frequency to 50 Hz
+        i2cWriteByteData(i2c_id_, 0xfe, 0x79);
+
+        // Reset MODE1 register
+        i2cWriteByteData(i2c_id_, 0, 0x0);
     };
 
     void SetVelocity(const Twist& velocity){
