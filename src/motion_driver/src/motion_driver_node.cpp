@@ -32,6 +32,9 @@ private:
     }
 
     void ResetRegisters(){
+        // Reset MODE1 register
+        i2cWriteByteData(i3c_id_, 0, 0);
+
         // Reset control registers.
         for (int reg = 0x6; reg <= 0x45; reg++){
             i2cWriteByteData(i2c_id_, reg, 0);
