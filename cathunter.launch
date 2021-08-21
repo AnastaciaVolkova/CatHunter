@@ -1,5 +1,5 @@
 <launch>
-<node name="joystick_server" pkg="joystick_server" type="joystick_server_node" respawn="false"/>
-<node name="motion_driver" pkg="motion_driver" type="motion_driver_node.sh" args="$(dirname)" respawn="false"/>
-<node name="teleop" pkg="teleop" type="teleop_node" respawn="false"/>
+<node name="joystick_server" pkg="joystick_server" type="joystick_server_node" respawn="false" output="screen"/>
+<node name="motion_driver" pkg="motion_driver" type="motion_driver_node.sh" args="$(dirname)" output="screen" respawn="false"/>
+<node name="teleop" pkg="teleop" type="teleop_node" output="screen" respawn="false"/>
 </launch>
