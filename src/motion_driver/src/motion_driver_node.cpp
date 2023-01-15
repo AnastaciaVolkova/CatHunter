@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <sstream>
 
 using geometry_msgs::Twist;
 using ros::Subscriber;
@@ -51,7 +52,7 @@ private:
                     case PI_BAD_PARAM:
                             ROS_ERROR("pi bad param"); break;
                     case PI_I2C_WRITE_FAILED:
-                            ROS_ERROR("pi i2c write fails"); break;
+                            ROS_ERROR("%i pi i2c write fails", reg); break;
                     default:
                             ROS_ERROR("Fail to write to i2c");
             }
@@ -116,11 +117,16 @@ public:
 
         buffer[0] = 0;   // ON_L
         buffer[1] = 0;   // ON_H
+
+        std::stringstream velocity_info;
+        std::string channel_names[4]={"fl", "fr", "bl", "br"};
         for (int i = 0; i < kWheelsNum; i++){
             GetLedRegValues(static_cast<int>(round(kMaxDuty*ch_vel[i])), buffer[2], buffer[3]);
-            ROS_INFO("%f %d %s %x %x", ch_vel[i], channels[i], i == 0? "**fl**": i==1? "fr": i==2? "bl": "br", buffer[2], buffer[3]);
+            velocity_info << "{" << channel_names[i] << ": " << ch_vel[i] << "(0x"
+                << std::hex << std::setfill('0') << std::setw(2)  << static_cast<int>(buffer[3]) << static_cast<int>(buffer[2]) << ")} ";
             SetLedRegister(channels[i], buffer[0], buffer[1], buffer[2], buffer[3]);
         }
+        ROS_INFO("%s", velocity_info.str().c_str());
     };
 
     ~MotionDriver(){
